@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Word → Mandala</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="app">
+      <header class="header">
+        <h1 class="title">Word → Mandala</h1>
+        <p class="subtitle">Type a single word to generate a deterministic mandala.</p>
+      </header>
+
+      <section class="controls" aria-label="Mandala controls">
+        <form id="wordForm" class="form" autocomplete="off">
+          <label class="label" for="wordInput">Word</label>
+          <div class="row">
+            <input
+              id="wordInput"
+              name="word"
+              class="input"
+              type="text"
+              inputmode="text"
+              placeholder="e.g. harmony"
+              maxlength="32"
+              spellcheck="false"
+              required
+            />
+            <button class="button primary" type="submit">Generate</button>
+            <button class="button" id="downloadBtn" type="button">Download PNG</button>
+          </div>
+          <p class="hint" id="hint">
+            Tip: the same word always produces the same mandala.
+          </p>
+        </form>
+      </section>
+
+      <section class="canvasWrap" aria-label="Mandala canvas">
+        <canvas id="mandalaCanvas" width="900" height="900"></canvas>
+      </section>
+
+      <footer class="footer">
+        <span id="seedLabel" class="seedLabel" aria-live="polite"></span>
+      </footer>
+    </main>
+
+    <script src="./app.js" defer></script>
+  </body>
+</html>
