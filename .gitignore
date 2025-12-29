@@ -1,0 +1,20 @@
+.env
+.venv
+venv
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.DS_Store
+
+# Streamlit
+.streamlit/secrets.toml
+
+# Build / output
+outputs/
+*.png
+*.svg
+*.pdf
+*.log
+
