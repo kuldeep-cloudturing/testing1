@@ -78,3 +78,4 @@ if generate:
         except Exception as e:
             st.error("Something went wrong while generating the image.")
             st.caption(str(e))
+
