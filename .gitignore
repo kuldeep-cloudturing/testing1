@@ -1,20 +1,16 @@
-.env
-.venv
-venv
+# Python
 __pycache__/
 *.pyc
-.pytest_cache/
-.mypy_cache/
-.ruff_cache/
+
+# Mac
 .DS_Store
 
-# Streamlit
+# Streamlit secrets (do NOT commit)
 .streamlit/secrets.toml
 
-# Build / output
-outputs/
-*.png
-*.svg
-*.pdf
-*.log
+# Environments
+.env
+.venv/
+venv/
+
 
