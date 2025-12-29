@@ -1,82 +1,80 @@
-from __future__ import annotations
-
-import json
+import base64
 import os
+from io import BytesIO
 
 import streamlit as st
-from dotenv import load_dotenv
+from openai import OpenAI
+from PIL import Image
 
-from mandala_art.generator import render_mandala
-from mandala_art.openai_theme import get_theme_for_word
-from mandala_art.utils import stable_int_hash
+st.set_page_config(page_title="Word → Mandala Art", page_icon="🌀")
 
+st.title("🌀 Word → Mandala Art")
+st.write("Type **one word**, click **Generate**, and get a complex mandala image.")
 
-load_dotenv()
+# --- Get API key securely (never hard-code it) ---
+# Streamlit Community Cloud uses st.secrets; locally you can use env var OPENAI_API_KEY.
+api_key = None
+if "OPENAI_API_KEY" in st.secrets:
+    api_key = st.secrets["OPENAI_API_KEY"]
+else:
+    api_key = os.environ.get("OPENAI_API_KEY")
 
-st.set_page_config(page_title="Word → Mandala Art", page_icon="🌀", layout="wide")
+if not api_key:
+    st.warning(
+        "Missing OpenAI API key.\n\n"
+        "Local: set an environment variable OPENAI_API_KEY.\n"
+        "Streamlit Cloud: add OPENAI_API_KEY in the app Secrets."
+    )
+    st.stop()
 
+client = OpenAI(api_key=api_key)
 
-@st.cache_data(show_spinner=False)
-def _cached_theme(word: str, model: str, api_key_present: bool) -> dict:
-    # Don't cache the actual key; just whether one was present.
-    if api_key_present:
-        t = get_theme_for_word(word, api_key=os.getenv("OPENAI_API_KEY"), model=model)
-    else:
-        t = get_theme_for_word(word, api_key="", model=model)
-    return t.as_dict()
+word = st.text_input("Enter a word", placeholder="e.g., serenity", max_chars=40)
 
+generate = st.button("Generate Mandala")
 
-@st.cache_data(show_spinner=False)
-def _cached_render(theme_json: str, seed: int, complexity: int, symmetry: int, size_px: int) -> bytes:
-    theme_dict = json.loads(theme_json)
-    # Rehydrate minimal Theme-like object via get_theme_for_word normalization path:
-    # easiest is to call get_theme_for_word fallback normalization by passing empty key,
-    # but we already have the dict, so we import the normalizer directly.
-    from mandala_art.utils import normalize_theme_dict
-
-    theme = normalize_theme_dict(theme_dict.get("word", "mandala"), theme_dict)
-    out = render_mandala(theme, seed=seed, complexity=complexity, symmetry=symmetry, size_px=size_px, export_svg=False)
-    return out.png
-
-
-st.title("Word → Mandala Art")
-st.caption("Enter a word → get a themed mandala. (OpenAI theming is used automatically if `OPENAI_API_KEY` is set.)")
-
-word = st.text_input("Word", value="", placeholder="e.g. Serenity, Ocean, Diwali, Lotus")
-go = st.button("Generate mandala", type="primary")
-
-if go:
-    word = (word or "").strip()
-    if not word:
-        st.warning("Please enter a word.")
-        st.stop()
-
-    api_key_present = bool(os.getenv("OPENAI_API_KEY", "").strip())
-    model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
-    seed = stable_int_hash(word) % 2_000_000_000
-
-    with st.spinner("Creating theme…"):
-        theme_dict = _cached_theme(word=word, model=model, api_key_present=api_key_present)
-
-    theme_json = json.dumps(theme_dict, sort_keys=True)
-
-    with st.spinner("Rendering mandala…"):
-        png_bytes = _cached_render(
-            theme_json=theme_json,
-            seed=int(seed),
-            complexity=8,
-            symmetry=16,
-            size_px=1024,
-        )
-
-    st.image(png_bytes, caption=f'"{theme_dict.get("word","")}" — {theme_dict.get("mood","")}', use_container_width=True)
-    st.download_button(
-        "Download PNG",
-        data=png_bytes,
-        file_name=f"mandala_{theme_dict.get('word','mandala').strip().lower().replace(' ','_')}.png",
-        mime="image/png",
+def build_prompt(w: str) -> str:
+    # Prompt designed for "complex mandala" and good aesthetics.
+    return (
+        f"Create a highly detailed, symmetrical mandala inspired by the word '{w}'. "
+        "Intricate linework, layered radial geometry, ornate patterns, crisp edges, "
+        "high contrast, harmonious color palette, centered composition, "
+        "white or subtle light background, studio-quality, ultra-detailed."
     )
 
-else:
-    st.info("Type a word and click **Generate mandala**.")
+if generate:
+    w = (word or "").strip()
+    if not w:
+        st.error("Please type a word.")
+        st.stop()
 
+    with st.spinner("Generating mandala..."):
+        try:
+            # GPT Image models return base64-encoded image data. :contentReference[oaicite:2]{index=2}
+            result = client.images.generate(
+                model="gpt-image-1",
+                prompt=build_prompt(w),
+                size="1024x1024",
+                # Optional knobs:
+                quality="high",
+            )
+
+            # For GPT image models, the response includes base64 image data. :contentReference[oaicite:3]{index=3}
+            b64 = result.data[0].b64_json
+            img_bytes = base64.b64decode(b64)
+
+            img = Image.open(BytesIO(img_bytes))
+
+            st.subheader(f"Mandala for: {w}")
+            st.image(img, use_container_width=True)
+
+            st.download_button(
+                label="Download PNG",
+                data=img_bytes,
+                file_name=f"mandala_{w.lower()}.png",
+                mime="image/png",
+            )
+
+        except Exception as e:
+            st.error("Something went wrong while generating the image.")
+            st.caption(str(e))
