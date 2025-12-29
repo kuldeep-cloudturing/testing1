@@ -2,8 +2,8 @@
 
 This is a small Streamlit app that:
 - takes a **single word**
-- uses **OpenAI (optional)** to generate a themed **color palette + motifs**
-- renders a **deterministic mandala** (PNG + SVG) using the theme
+- uses **OpenAI (optional, automatic)** to generate a themed **color palette + motifs**
+- renders a **deterministic mandala** (PNG) using the theme
 
 ### Files
 
@@ -36,8 +36,6 @@ Then set:
 
 - `OPENAI_API_KEY`
 - (optional) `OPENAI_MODEL` (default is `gpt-4o-mini`)
-
-Option B: paste your API key directly into the app sidebar.
 
 If no key is provided, the app still works using a deterministic fallback palette based on the word.
 
